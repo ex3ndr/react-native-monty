@@ -13,6 +13,7 @@ type WebRuntimeModule = typeof import("./web/monty/wrapper");
 type WebSnapshot = import("./web/monty/wrapper").MontySnapshot;
 type WebProgressResult = WebSnapshot | import("./web/monty/wrapper").MontyComplete;
 type NativeErrorPayload = Extract<NativeMontyResult, { ok: false }>["error"];
+type WebMontyOptions = MontyOptions & { externalFunctions?: string[] };
 
 type StoredState = {
     scriptName: string;
@@ -61,6 +62,26 @@ function normalizeMontyOptions(options?: MontyOptions): MontyOptions {
         inputs: options?.inputs,
         typeCheck: options?.typeCheck,
         typeCheckPrefixCode: options?.typeCheckPrefixCode
+    };
+}
+
+function extractExternalFunctionNames(options?: RunOptions): string[] | undefined {
+    const values = options?.externalFunctions;
+    if (!values || typeof values !== "object") {
+        return undefined;
+    }
+
+    const names = Object.entries(values)
+        .filter((entry) => typeof entry[1] === "function")
+        .map((entry) => entry[0]);
+
+    return names.length > 0 ? names : undefined;
+}
+
+function normalizeWebMontyOptions(montyOptions?: MontyOptions, runOptions?: RunOptions): WebMontyOptions {
+    return {
+        ...normalizeMontyOptions(montyOptions),
+        externalFunctions: extractExternalFunctionNames(runOptions)
     };
 }
 
@@ -203,7 +224,7 @@ const MontyExpoModule: NativeMontyExpoModuleType = {
         let runtime: WebRuntimeModule | undefined;
         try {
             runtime = getWebRuntimeModule();
-            const runner = new runtime.Monty(code, normalizeMontyOptions(montyOptions));
+            const runner = new runtime.Monty(code, normalizeWebMontyOptions(montyOptions, options));
             const output = runner.run(normalizeRunOptions(options));
             return {
                 ok: true,
@@ -217,7 +238,7 @@ const MontyExpoModule: NativeMontyExpoModuleType = {
         let runtime: WebRuntimeModule | undefined;
         try {
             runtime = getWebRuntimeModule();
-            const runner = new runtime.Monty(code, normalizeMontyOptions(montyOptions));
+            const runner = new runtime.Monty(code, normalizeWebMontyOptions(montyOptions, options));
             const progress = runner.start(normalizeStartOptions(options));
             return mapProgressResult(progress, runner.scriptName, runtime);
         } catch (error) {
