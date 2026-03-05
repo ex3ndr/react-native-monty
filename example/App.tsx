@@ -7,7 +7,7 @@ import {
   MontyRuntimeError,
   montyExpoNativeRuntimeLinked,
   montyExpoVersion,
-} from "expo-monty";
+} from "react-native-monty";
 
 type ProbeResult =
   | {

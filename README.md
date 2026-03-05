@@ -1,8 +1,8 @@
-# expo-monty
+# react-native-monty
 
 Run Python code on iOS, Android, and the web from React Native.
 
-expo-monty embeds [Monty](https://github.com/pydantic/monty), a sandboxed Python interpreter written in Rust, and exposes it through a single TypeScript API. On native platforms the interpreter runs as compiled Rust via FFI; on the web it falls back to an embedded WASM binary. Your app ships the same code everywhere.
+react-native-monty embeds [Monty](https://github.com/pydantic/monty), a sandboxed Python interpreter written in Rust, and exposes it through a single TypeScript API. On native platforms the interpreter runs as compiled Rust via FFI; on the web it falls back to an embedded WASM binary. Your app ships the same code everywhere.
 
 ## Features
 
@@ -17,13 +17,13 @@ expo-monty embeds [Monty](https://github.com/pydantic/monty), a sandboxed Python
 ## Quick start
 
 ```bash
-npm install expo-monty
+npm install react-native-monty
 # or
-yarn add expo-monty
+yarn add react-native-monty
 ```
 
 ```ts
-import { loadMonty, Monty } from "expo-monty";
+import { loadMonty, Monty } from "react-native-monty";
 
 // Load the runtime (required on web, no-op on native)
 await loadMonty();
@@ -61,7 +61,7 @@ const output = monty.run({
 If your external functions need to do async work (network requests, database calls, etc.), use `runMontyAsync`:
 
 ```ts
-import { runMontyAsync, Monty } from "expo-monty";
+import { runMontyAsync, Monty } from "react-native-monty";
 
 const monty = new Monty("fetch_data(url)", {
   inputs: ["url"],
@@ -83,7 +83,7 @@ const result = await runMontyAsync(monty, {
 For fine-grained control, use `start` / `resume` to step through execution manually:
 
 ```ts
-import { Monty, MontySnapshot, MontyComplete } from "expo-monty";
+import { Monty, MontySnapshot, MontyComplete } from "react-native-monty";
 
 const monty = new Monty("result = compute(42)");
 let progress = monty.start();

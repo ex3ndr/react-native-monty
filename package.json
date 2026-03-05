@@ -1,11 +1,11 @@
 {
-  "name": "expo-monty",
+  "name": "react-native-monty",
   "version": "0.1.0",
   "description": "Nitro Modules bridge for Monty on iOS, Android, and web",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ex3ndr/expo-monty.git"
+    "url": "https://github.com/ex3ndr/react-native-monty.git"
   },
   "main": "build/index.js",
   "types": "build/index.d.ts",
