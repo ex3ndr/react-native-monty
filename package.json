@@ -1,6 +1,6 @@
 {
   "name": "react-native-monty",
-  "version": "0.1.1",
+  "version": "0.8.0",
   "description": "Nitro Modules bridge for Monty on iOS, Android, and web",
   "license": "MIT",
   "repository": {
@@ -49,7 +49,7 @@
     "module"
   ],
   "config": {
-    "montyUpstreamRef": "v0.0.7"
+    "montyUpstreamRef": "v0.0.8"
   },
   "dependencies": {
     "@napi-rs/wasm-runtime": "^1.1.1"

@@ -1,6 +1,6 @@
 // Custom error classes that extend Error for proper JavaScript error handling.
 // These wrap the native Rust classes to provide instanceof support.
-import { Monty as NativeMonty, MontyRepl as NativeMontyRepl, MontySnapshot as NativeMontySnapshot, MontyComplete as NativeMontyComplete, MontyException as NativeMontyException, MontyTypingError as NativeMontyTypingError, } from './index.js';
+import { Monty as NativeMonty, MontyRepl as NativeMontyRepl, MontySnapshot as NativeMontySnapshot, MontyNameLookup as NativeMontyNameLookup, MontyComplete as NativeMontyComplete, MontyException as NativeMontyException, MontyTypingError as NativeMontyTypingError, } from './index.js';
 /**
  * Base class for all Monty interpreter errors.
  *
@@ -222,10 +222,11 @@ export class Monty {
         return result;
     }
     /**
-     * Starts execution and returns either a snapshot (paused at external call) or completion.
+     * Starts execution and returns a snapshot (paused at external call or name lookup) or completion.
      *
      * @param options - Execution options (inputs, limits)
-     * @returns MontySnapshot if an external function call is pending, MontyComplete if done
+     * @returns MontySnapshot if paused at function call, MontyNameLookup if paused at
+     *   name lookup, MontyComplete if done
      * @throws {MontyRuntimeError} If the code raises an exception
      */
     start(options) {
@@ -254,10 +255,6 @@ export class Monty {
     get inputs() {
         return this._native.inputs;
     }
-    /** Returns the external function names. */
-    get externalFunctions() {
-        return this._native.externalFunctions;
-    }
     /** Returns a string representation of the Monty instance. */
     repr() {
         return this._native.repr();
@@ -265,26 +262,18 @@ export class Monty {
 }
 /**
  * Incremental no-replay REPL session.
+ *
+ * Create with `new MontyRepl()` then call `feed()` to execute snippets
+ * incrementally against persistent state.
  */
 export class MontyRepl {
     /**
-     * Creates a REPL session directly from source code.
+     * Creates an empty REPL session ready to receive snippets via `feed()`.
+     *
+     * @param options - Optional configuration (scriptName, limits)
      */
-    static create(code, options, startOptions) {
-        const result = NativeMontyRepl.create(code, options, startOptions);
-        if (result instanceof NativeMontyException) {
-            if (result.exception.typeName === 'SyntaxError') {
-                throw new MontySyntaxError(result);
-            }
-            throw new MontyRuntimeError(result);
-        }
-        if (result instanceof NativeMontyTypingError) {
-            throw new MontyTypingError(result);
-        }
-        return new MontyRepl(result);
-    }
-    constructor(nativeRepl) {
-        this._native = nativeRepl;
+    constructor(options) {
+        this._native = new NativeMontyRepl(options);
     }
     /** Returns the script name for this REPL session. */
     get scriptName() {
@@ -310,7 +299,10 @@ export class MontyRepl {
     }
     /** Restores a REPL session from bytes. */
     static load(data) {
-        return new MontyRepl(NativeMontyRepl.load(data));
+        const native = NativeMontyRepl.load(data);
+        const repl = Object.create(MontyRepl.prototype);
+        repl._native = native;
+        return repl;
     }
     /** Returns a string representation of the REPL session. */
     repr() {
@@ -323,6 +315,11 @@ export class MontyRepl {
 function wrapStartResult(result) {
     if (result instanceof NativeMontyException) {
         throw new MontyRuntimeError(result);
+    }
+    // Check MontyNameLookup before MontySnapshot — napi `Either4` may cause
+    // false positives with `instanceof` if checked in the wrong order.
+    if (result instanceof NativeMontyNameLookup) {
+        return new MontyNameLookup(result);
     }
     if (result instanceof NativeMontySnapshot) {
         return new MontySnapshot(result);
@@ -362,7 +359,8 @@ export class MontySnapshot {
      * Resumes execution with either a return value or an exception.
      *
      * @param options - Object with either `returnValue` or `exception`
-     * @returns MontySnapshot if another external call is pending, MontyComplete if done
+     * @returns MontySnapshot if paused at function call, MontyNameLookup if paused at
+     *   name lookup, MontyComplete if done
      * @throws {MontyRuntimeError} If the code raises an exception
      */
     resume(options) {
@@ -383,6 +381,58 @@ export class MontySnapshot {
         return new MontySnapshot(nativeSnapshot);
     }
     /** Returns a string representation of the MontySnapshot. */
+    repr() {
+        return this._native.repr();
+    }
+}
+/**
+ * Represents paused execution waiting for a name to be resolved.
+ *
+ * The host should check if the variable name corresponds to a known value
+ * (e.g., an external function). Call `resume()` with the value to continue
+ * execution, or call `resume()` with no value to raise `NameError`.
+ */
+export class MontyNameLookup {
+    constructor(nativeNameLookup) {
+        this._native = nativeNameLookup;
+    }
+    /** Returns the name of the script being executed. */
+    get scriptName() {
+        return this._native.scriptName;
+    }
+    /** Returns the name of the variable being looked up. */
+    get variableName() {
+        return this._native.variableName;
+    }
+    /**
+     * Resumes execution after resolving the name lookup.
+     *
+     * If `value` is provided, the name resolves to that value and execution continues.
+     * If `value` is omitted/undefined, the VM raises a `NameError`.
+     *
+     * @param options - Optional object with `value` to resolve the name to
+     * @returns MontySnapshot if paused at function call, MontyNameLookup if paused at
+     *   another name lookup, MontyComplete if done
+     * @throws {MontyRuntimeError} If the code raises an exception
+     */
+    resume(options) {
+        const result = this._native.resume(options);
+        return wrapStartResult(result);
+    }
+    /**
+     * Serializes the MontyNameLookup to a binary format.
+     */
+    dump() {
+        return this._native.dump();
+    }
+    /**
+     * Deserializes a MontyNameLookup from binary format.
+     */
+    static load(data, options) {
+        const nativeLookup = NativeMontyNameLookup.load(data, options);
+        return new MontyNameLookup(nativeLookup);
+    }
+    /** Returns a string representation of the MontyNameLookup. */
     repr() {
         return this._native.repr();
     }
@@ -419,7 +469,6 @@ export class MontyComplete {
  * @example
  * const m = new Monty('result = await fetch_data(url)', {
  *   inputs: ['url'],
- *   externalFunctions: ['fetch_data']
  * });
  *
  * const result = await runMontyAsync(m, {
@@ -433,21 +482,38 @@ export class MontyComplete {
  * });
  */
 export async function runMontyAsync(montyRunner, options = {}) {
-    const { inputs, externalFunctions = {}, limits } = options;
+    const { inputs, externalFunctions = {}, limits, printCallback } = options;
     let progress = montyRunner.start({
         inputs,
         limits,
+        printCallback,
     });
-    while (progress instanceof MontySnapshot) {
+    while (!(progress instanceof MontyComplete)) {
+        if (progress instanceof MontyNameLookup) {
+            // Name lookup — check if the name is a known external function
+            const name = progress.variableName;
+            const extFunction = externalFunctions[name];
+            if (extFunction) {
+                // Resolve the name as a function value
+                progress = progress.resume({ value: extFunction });
+            }
+            else {
+                // Unknown name — resume with no value to raise NameError
+                progress = progress.resume();
+            }
+            continue;
+        }
+        // MontySnapshot — external function call
         const snapshot = progress;
         const funcName = snapshot.functionName;
         const extFunction = externalFunctions[funcName];
         if (!extFunction) {
-            // Function not found - resume with a KeyError exception
+            // Function not found — this shouldn't normally happen since NameLookup
+            // would have raised NameError, but handle it defensively
             progress = snapshot.resume({
                 exception: {
-                    type: 'KeyError',
-                    message: `"External function '${funcName}' not found"`,
+                    type: 'NameError',
+                    message: `name '${funcName}' is not defined`,
                 },
             });
             continue;

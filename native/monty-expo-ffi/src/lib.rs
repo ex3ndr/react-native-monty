@@ -744,8 +744,8 @@ fn start_monty(
         Err(exception) => return exception_to_json(exception),
     };
 
-    let mut print = PrintWriter::Disabled;
-    match runner.start(ordered_inputs, NoLimitTracker, &mut print) {
+    let print = PrintWriter::Disabled;
+    match runner.start(ordered_inputs, NoLimitTracker, print) {
         Ok(progress) => progress_to_json(script_name, progress),
         Err(exception) => exception_to_json(exception),
     }
@@ -815,8 +815,8 @@ fn resume_monty(snapshot_id: &str, resume_options_json: Option<String>) -> JsonV
                 }
             };
 
-            let mut print = PrintWriter::Disabled;
-            match function_call.resume(ext_result, &mut print) {
+            let print = PrintWriter::Disabled;
+            match function_call.resume(ext_result, print) {
                 Ok(progress) => progress_to_json(script_name, progress),
                 Err(exception) => exception_to_json(exception),
             }
@@ -843,8 +843,8 @@ fn resume_monty(snapshot_id: &str, resume_options_json: Option<String>) -> JsonV
                 NameLookupResult::Undefined
             };
 
-            let mut print = PrintWriter::Disabled;
-            match name_lookup.resume(lookup_result, &mut print) {
+            let print = PrintWriter::Disabled;
+            match name_lookup.resume(lookup_result, print) {
                 Ok(progress) => progress_to_json(script_name, progress),
                 Err(exception) => exception_to_json(exception),
             }

@@ -2,7 +2,7 @@ package com.montyexpo
 
 import com.margelo.nitro.montyexpo.HybridMontyExpoSpec
 
-private const val MODULE_VERSION = "0.1.0"
+private const val MODULE_VERSION = "0.8.0"
 
 class HybridMontyExpo : HybridMontyExpoSpec() {
   override fun version(): String {

@@ -166,7 +166,7 @@ yarn codegen             # Generate Nitro Modules native bindings
 yarn build:ts            # TypeScript compilation
 ```
 
-The web runtime is built from the pinned upstream ref in `package.json` (`config.montyUpstreamRef`, currently `v0.0.7`). Override for one-off builds:
+The web runtime is built from the pinned upstream ref in `package.json` (`config.montyUpstreamRef`, currently `v0.0.8`). Override for one-off builds:
 
 ```bash
 MONTY_UPSTREAM_REF=<tag-or-commit> yarn build:web

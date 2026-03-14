@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
   load "nitrogen/generated/ios/MontyExpo+autolinking.rb"
   add_nitrogen_files(s)
 
-  s.vendored_libraries = "ios/rust/libmonty_expo_ffi.a"
+  s.vendored_frameworks = "ios/rust/monty_expo_ffi.xcframework"
   s.preserve_paths = "ios/rust/**/*"
 
   s.dependency "React-jsi"

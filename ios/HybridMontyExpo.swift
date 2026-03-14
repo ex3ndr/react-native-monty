@@ -1,6 +1,6 @@
 import Foundation
 
-private let moduleVersion = "0.1.0"
+private let moduleVersion = "0.8.0"
 
 @_silgen_name("monty_expo_run_json")
 private func monty_expo_run_json(

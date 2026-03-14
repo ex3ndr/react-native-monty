@@ -13,7 +13,7 @@ const packageJsonPath = join(packageDir, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 
 const upstreamRepo = process.env.MONTY_UPSTREAM_REPO ?? "https://github.com/pydantic/monty.git";
-const defaultUpstreamRef = packageJson.config?.montyUpstreamRef ?? "v0.0.7";
+const defaultUpstreamRef = packageJson.config?.montyUpstreamRef ?? "v0.0.8";
 const upstreamRef = process.env.MONTY_UPSTREAM_REF ?? defaultUpstreamRef;
 const pyo3Python = process.env.PYO3_PYTHON ?? "python3";
 const rustTarget = "wasm32-wasip1-threads";

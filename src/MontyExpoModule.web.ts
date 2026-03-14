@@ -11,13 +11,14 @@ import type { NativeMontyExpoModuleType } from "./MontyExpoModule";
 
 type WebRuntimeModule = typeof import("./web/monty/wrapper");
 type WebSnapshot = import("./web/monty/wrapper").MontySnapshot;
-type WebProgressResult = WebSnapshot | import("./web/monty/wrapper").MontyComplete;
+type WebNameLookup = import("./web/monty/wrapper").MontyNameLookup;
+type WebProgressResult = WebSnapshot | WebNameLookup | import("./web/monty/wrapper").MontyComplete;
 type NativeErrorPayload = Extract<NativeMontyResult, { ok: false }>["error"];
 type WebMontyOptions = MontyOptions & { externalFunctions?: string[] };
 
 type StoredState = {
     scriptName: string;
-    state: WebSnapshot;
+    state: WebSnapshot | WebNameLookup;
 };
 
 const snapshotStore = new Map<string, StoredState>();
@@ -199,6 +200,16 @@ function mapProgressResult(
         state: progress
     });
 
+    if (progress instanceof runtime.MontyNameLookup) {
+        return {
+            ok: true,
+            state: "nameLookup",
+            snapshotId,
+            scriptName,
+            variableName: progress.variableName
+        };
+    }
+
     return {
         ok: true,
         state: "functionCall",
@@ -212,7 +223,7 @@ function mapProgressResult(
 
 const MontyExpoModule: NativeMontyExpoModuleType = {
     version(): string {
-        return "0.1.0-web+embedded-wasm";
+        return "0.8.0-web+embedded-wasm";
     },
     isNativeRuntimeLinked(): boolean {
         return false;
